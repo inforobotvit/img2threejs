@@ -208,3 +208,19 @@ def _minimal_spec():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PassGateAgreesWithValidator(unittest.TestCase):
+    """The pass gate (orchestrate_passes.material_pass_gaps) must honour the same declaration the
+    validator honours; otherwise the validator forbids the fields the gate demands and a flat-paint
+    subject can never clear material-pass."""
+
+    def test_declared_material_is_exempt_at_the_pass_gate(self):
+        from orchestrate_passes import material_pass_gaps
+        gaps = material_pass_gaps(quality_first_spec([base_material(textureless=DECLARED)]))
+        self.assertFalse(any("textureResolution must be >=" in gap for gap in gaps), gaps)
+
+    def test_undeclared_material_still_fails_at_the_pass_gate(self):
+        from orchestrate_passes import material_pass_gaps
+        gaps = material_pass_gaps(quality_first_spec([base_material()]))
+        self.assertTrue(any("textureResolution must be >=" in gap for gap in gaps), gaps)
