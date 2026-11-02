@@ -3522,6 +3522,17 @@ def generate(spec: dict[str, Any], pass_id: str) -> str:
         sdf = descriptor.get("sdf") if isinstance(descriptor, dict) else None
         visual_hull = descriptor.get("visualHull") if isinstance(descriptor, dict) else None
         is_implicit = component.get("topologyClass") == "implicit" and isinstance(sdf, dict)
+        # A tube or curve-sweep that carries its own authored path already IS its geometry; the
+        # attachment block is then only the contract the anchor gate reads. Deriving a straight
+        # endpoint cylinder for it would silently replace a measured cable or headband with a rod
+        # -- the same authored-shape override the ATTACHMENT_PRIMITIVES gate below exists to stop.
+        has_authored_path = (
+            (primitive == "tube" and isinstance(geometry_descriptor.get("tubePath"), dict))
+            or (primitive == "curve-sweep" and isinstance(geometry_descriptor.get("curveSweep"), dict))
+        )
+        derives_endpoint_geometry = (
+            primitive in ATTACHMENT_PRIMITIVES and not is_implicit and not has_authored_path
+        )
         is_visual_hull = isinstance(visual_hull, dict)
         iterations = subdivision_iterations(component)
         effective_primitive = resolve_instanced_cluster_base(primitive, geometry_descriptor, VALID_PRIMITIVES)
@@ -3588,7 +3599,7 @@ def generate(spec: dict[str, Any], pass_id: str) -> str:
                 "",
                 *(
                     [f"  const {attachment_var} = {json.dumps(attachment, ensure_ascii=False)};"]
-                    if primitive in ATTACHMENT_PRIMITIVES and not is_implicit
+                    if derives_endpoint_geometry
                     else []
                 ),
                 # Endpoint-DERIVED GEOMETRY only for primitives that are attachment shapes.
@@ -3614,7 +3625,7 @@ def generate(spec: dict[str, Any], pass_id: str) -> str:
                     # moved the node to `attachment.localStart`: a head authored at y 0.705 was
                     # emitted at y -0.195, inside the body, and the model rendered with no head at
                     # all.
-                    if primitive in ATTACHMENT_PRIMITIVES and not is_implicit
+                    if derives_endpoint_geometry
                     # `makeAttachmentEndpoint(null)` rather than a bare `null`, so the
                     # binding keeps its `AttachmentEndpoint | null` type. A literal null narrows to
                     # `never` and every later `endpoint.start` stops compiling.
