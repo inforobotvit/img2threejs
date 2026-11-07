@@ -1,0 +1,9 @@
+{
+  "name": "img2threejs-plus-viewer",
+  "private": true,
+  "description": "Headless review harness used by integrations/plus/plus.py render",
+  "dependencies": {
+    "esbuild": "0.24.0",
+    "three": "0.170.0"
+  }
+}
