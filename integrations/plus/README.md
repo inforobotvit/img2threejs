@@ -13,6 +13,16 @@ unless you do.
 | `compare` | Side-by-side, 50 % overlay, silhouette XOR map, silhouette IoU | PNGs + JSON |
 | `tone measure` / `tone apply` | Colour calibration: photo ÷ render ratio per region in linear light, accumulated across rounds, written back into material base colours | `compensation.json`, edited spec |
 
+## Agent skill
+
+`skill/img2threejs-plus/` is a companion skill that tells the agent when and how to use these
+tools inside the base pipeline. Link it next to the base skill:
+
+```bash
+ln -sfn "$PWD/integrations/plus/skill/img2threejs-plus" ~/.claude/skills/img2threejs-plus
+ln -sfn "$PWD/integrations/plus/skill/img2threejs-plus" ~/.codex/skills/img2threejs-plus
+```
+
 ## Install
 
 Python 3.10+ with numpy, opencv, pillow, playwright; Node 18+ for the viewer bundle
