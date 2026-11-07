@@ -9,6 +9,7 @@ Views are name=query pairs:
   view=ref&strip=1    same, every material replaced by flat grey (map-stripped render)
   az=90&el=4          orbit view; optional fov, dist, tx/ty/tz (orbit target)
   mode=neutral        look-dev light rig passed to the factory (default: reference)
+  ground=0.08         ground shadow opacity (default 0 for view=ref, 0.08 for orbit views)
 """
 from __future__ import annotations
 

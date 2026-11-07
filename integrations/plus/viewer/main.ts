@@ -52,7 +52,11 @@ if (strip) {
   const grey = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.8 });
   model.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = grey; });
 }
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.08 }));
+// Ground shadow: off by default for the reference view (a cast shadow would count as silhouette in
+// compare / diagnose_render), 0.08 for orbit views; override with ?ground=<opacity>.
+const groundOpacity = Number(q.get('ground') ?? (q.get('view') === 'ref' ? 0 : 0.08));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: groundOpacity }));
+ground.visible = groundOpacity > 0;
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
 const aspect = window.innerWidth / window.innerHeight;
