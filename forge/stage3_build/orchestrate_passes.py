@@ -410,6 +410,13 @@ def material_pass_gaps(spec: dict[str, Any]) -> list[str]:
         for material in materials:
             if material.get("qualityTier") == "utility":
                 continue
+            # Mirror validate_sculpt_spec: a material that declares -- with hard-validated
+            # evidence -- that its subject carries no texture detail is exempt from the
+            # texture-channel bar. Without this the spec validator forbids the very fields
+            # this gate demands, so a flat-paint subject can never pass material-pass.
+            declaration = material.get("textureless")
+            if isinstance(declaration, dict) and declaration.get("declared") is True:
+                continue
             gaps.extend(quality_first_material_gaps(spec, material))
     return gaps
 
