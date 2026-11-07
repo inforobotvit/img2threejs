@@ -61,6 +61,28 @@ SCALE_DELTA_THRESHOLD = 0.08
 SYMMETRY_ERROR_THRESHOLD = 0.10
 COLOR_DELTA_E_THRESHOLD = 20.0  # generous vs. the JND (~2-3) to tolerate render/photo lighting gaps
 MASK_GRID_SIZE = 224
+# A spec may lower the silhouette bar for a reference that cannot reach 0.85 (for example a
+# generated image whose parts do not share one perspective). It must say why, and it cannot go
+# below this floor, so the override can relax the gate but never switch it off.
+SILHOUETTE_IOU_FLOOR = 0.6
+MIN_OVERRIDE_REASON_CHARS = 20
+
+
+def silhouette_iou_threshold(spec: dict[str, Any] | None) -> tuple[float, dict[str, Any]]:
+    """Returns (threshold, provenance). Source is "default" or "spec.reviewThresholds"."""
+    default = (SILHOUETTE_IOU_THRESHOLD, {"value": SILHOUETTE_IOU_THRESHOLD, "source": "default"})
+    override = ((spec or {}).get("reviewThresholds") or {}).get("silhouetteIoU")
+    if override is None:
+        return default
+    if not isinstance(override, dict):
+        raise ValueError("reviewThresholds.silhouetteIoU must be an object {min, reason}")
+    value, reason = override.get("min"), str(override.get("reason") or "").strip()
+    if not isinstance(value, (int, float)) or not SILHOUETTE_IOU_FLOOR <= value <= 1:
+        raise ValueError(f"reviewThresholds.silhouetteIoU.min must be a number in [{SILHOUETTE_IOU_FLOOR}, 1]")
+    if len(reason) < MIN_OVERRIDE_REASON_CHARS:
+        raise ValueError(f"reviewThresholds.silhouetteIoU.reason must explain the override (>= {MIN_OVERRIDE_REASON_CHARS} chars)")
+    return float(value), {"value": float(value), "source": "spec.reviewThresholds", "reason": reason,
+                          "default": SILHOUETTE_IOU_THRESHOLD}
 
 
 def mask_is_inverted(warnings: list[str]) -> bool:
@@ -239,6 +261,7 @@ def run_tier1(
     )
 
     iou = silhouette_iou(reference_mask, render_mask)
+    iou_threshold, iou_threshold_info = silhouette_iou_threshold(load_spec(spec_path) if spec_path is not None else None)
     reference_bbox = bbox_of(reference_mask)
     render_bbox = bbox_of(render_mask)
     proportions = proportion_delta(reference_bbox, render_bbox)
@@ -249,6 +272,7 @@ def run_tier1(
         "aspectRatioDelta": proportions["aspect_ratio_delta"],
         "scaleDelta": proportions["scale_delta"],
         "bilateralSymmetryError": round(symmetry, 4),
+        "silhouetteIoUThreshold": iou_threshold_info,
     }
     failures: list[str] = []
     if mask_is_inverted(reference_mask_warnings) or mask_is_inverted(render_mask_warnings):
@@ -257,8 +281,9 @@ def run_tier1(
             "coverage (subject under 3.5% of the frame), so IoU and proportion are not "
             "measuring the subject; re-capture with the subject filling more of the frame"
         )
-    if iou < SILHOUETTE_IOU_THRESHOLD:
-        failures.append(f"silhouette IoU {iou:.3f} is below threshold {SILHOUETTE_IOU_THRESHOLD}")
+    if iou < iou_threshold:
+        note = "" if iou_threshold_info["source"] == "default" else " (lowered by spec.reviewThresholds)"
+        failures.append(f"silhouette IoU {iou:.3f} is below threshold {iou_threshold}{note}")
     if proportions["aspect_ratio_delta"] > ASPECT_RATIO_DELTA_THRESHOLD:
         failures.append(
             f"aspect-ratio delta {proportions['aspect_ratio_delta']:.3f} exceeds "

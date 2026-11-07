@@ -71,6 +71,7 @@ only the executable order and one-line summary; this file defines the mandatory 
   visual likeness remain separate gates. Payload ownership and non-goals:
   `grimoire/readiness/procedural_rigging_contract.md`.
 - **Tier 1 (legacy, still valid)**: "Tier 2 (AI-vision) never runs against a render that has not passed Tier 1." Run `forge/stage4_review/diagnose_render.py` (silhouette IoU/proportion/symmetry/per-part color) and record it (`--spec ... --in-place`) before requesting a comparison sheet; `orchestrate_passes.py check` refuses otherwise.
+  The silhouette bar defaults to IoU 0.85. A reference that cannot reach it with any model (typically a generated image whose parts are drawn in different perspectives) may lower it in the spec: `"reviewThresholds": {"silhouetteIoU": {"min": 0.72, "reason": "<why this reference cannot reach 0.85>"}}`. The reason is required, the floor is 0.6, and the result reports the threshold it applied under `checks.silhouetteIoUThreshold`. Lower it only after the camera is matched and the shortfall is shown to come from the reference, never to pass a model that is still wrong.
 - **Pre-spec / strict-quality**: blocks code gen until the spec is deep enough for its contract.
 - **Screenshot feedback**: `continue` is allowed only with a render + comparison sheet + global
   AI-vision score ≥ threshold (default 0.7) AND every critical feature ≥ its own threshold.
