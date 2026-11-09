@@ -6,6 +6,7 @@
   project  world point(s) -> pixels in the reference
   render   headless renders of a generated factory (ref camera, orbit views)
   compare  side-by-side, overlay, silhouette XOR + IoU vs the photo
+  crops    per-part sheet: the same boxes cut from photo and render, side by side
   tone     measure | apply  colour calibration under the renderer's tone mapping
 
 Every command prints JSON. See integrations/plus/README.md.
@@ -60,6 +61,11 @@ def cmd_compare(a):
     _dump(compare.compare(a.reference, a.render, a.out, a.threshold))
 
 
+def cmd_crops(a):
+    from img2plus import compare
+    _dump(compare.crops(a.reference, a.render, json.loads(pathlib.Path(a.boxes).read_text()), a.out))
+
+
 def cmd_tone(a):
     from img2plus import tone
     if a.action == "measure":
@@ -110,6 +116,13 @@ def main(argv=None):
     s.add_argument("--out", required=True)
     s.add_argument("--threshold", type=float, default=18.0)
     s.set_defaults(fn=cmd_compare)
+
+    s = sub.add_parser("crops", help="per-part photo | render sheet")
+    s.add_argument("--reference", required=True)
+    s.add_argument("--render", required=True, help="render from the reference camera (view=ref)")
+    s.add_argument("--boxes", required=True, help='{"claw-r": [x0, y0, x1, y1], ...} in reference pixels')
+    s.add_argument("--out", required=True)
+    s.set_defaults(fn=cmd_crops)
 
     s = sub.add_parser("tone", help="colour calibration")
     s.add_argument("action", choices=["measure", "apply"])

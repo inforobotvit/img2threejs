@@ -42,3 +42,24 @@ def compare(reference: str, render: str, out_dir: str, threshold: float = 18.0) 
     return {"silhouetteIoU": round(iou, 4),
             "onlyReferencePx": int((ma & ~mb).sum()), "onlyRenderPx": int((~ma & mb).sum()),
             "files": {k: str(out / f"{k}.png") for k in ("side", "overlay", "xor")}}
+
+
+def crops(reference: str, render: str, boxes: dict, out: str, height: int = 360) -> dict:
+    """Per-part review: the same pixel box cut from the photo and from the reference-camera render,
+    placed side by side (photo | render) for every named box, one row per box."""
+    a = Image.open(reference).convert("RGB")
+    b = Image.open(render).convert("RGB").resize(a.size)
+    rows = []
+    for name, box in boxes.items():
+        pair = [im.crop(tuple(int(v) for v in box)) for im in (a, b)]
+        pair = [p.resize((max(1, int(p.width * height / p.height)), height)) for p in pair]
+        row = Image.new("RGB", (pair[0].width + pair[1].width + 12, height), (255, 255, 255))
+        row.paste(pair[0], (0, 0)); row.paste(pair[1], (pair[0].width + 12, 0))
+        rows.append(row)
+    sheet = Image.new("RGB", (max(r.width for r in rows), sum(r.height for r in rows) + 12 * (len(rows) - 1)), (255, 255, 255))
+    y = 0
+    for r in rows:
+        sheet.paste(r, (0, y)); y += r.height + 12
+    pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out)
+    return {"sheet": out, "parts": list(boxes)}

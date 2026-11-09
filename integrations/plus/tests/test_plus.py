@@ -84,6 +84,19 @@ class Compare(unittest.TestCase):
             self.assertTrue(pathlib.Path(r["files"]["xor"]).exists())
 
 
+class Crops(unittest.TestCase):
+    def test_sheet_has_one_row_per_part(self):
+        with tempfile.TemporaryDirectory() as d:
+            Image.new("RGB", (200, 100), (200, 30, 40)).save(pathlib.Path(d, "a.png"))
+            Image.new("RGB", (200, 100), (30, 30, 200)).save(pathlib.Path(d, "b.png"))
+            out = str(pathlib.Path(d, "s.png"))
+            compare.crops(str(pathlib.Path(d, "a.png")), str(pathlib.Path(d, "b.png")), {"x": [0, 0, 50, 50], "y": [100, 0, 200, 100]}, out, height=60)
+            sheet = np.asarray(Image.open(out))
+            self.assertEqual(sheet.shape[0], 60 * 2 + 12)
+            self.assertEqual(tuple(sheet[30, 10]), (200, 30, 40))          # photo on the left
+            self.assertEqual(tuple(sheet[30, 60 + 12 + 10]), (30, 30, 200))  # render on the right
+
+
 class Cli(unittest.TestCase):
     def test_camera_command_writes_json(self):
         import subprocess

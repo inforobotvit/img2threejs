@@ -11,6 +11,7 @@ unless you do.
 | `project` | World points → pixels, to check a placement against the photo | JSON |
 | `render` | Headless renders of a generated factory from the solved camera and orbit views (Chromium + SwiftShader, no GPU) | PNG per view |
 | `compare` | Side-by-side, 50 % overlay, silhouette XOR map, silhouette IoU | PNGs + JSON |
+| `crops` | Per-part sheet: the same pixel boxes cut from the photo and the reference-view render | PNG |
 | `tone measure` / `tone apply` | Colour calibration: photo ÷ render ratio per region in linear light, accumulated across rounds, written back into material base colours | `compensation.json`, edited spec |
 
 ## Agent skill
